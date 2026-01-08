@@ -145,18 +145,9 @@ const speakPrompt = (prompt) => {
     alert("当前浏览器不支持语音播放，请手动朗读单词。");
     return;
   }
-  const normalUtterance = new SpeechSynthesisUtterance(prompt);
-  normalUtterance.lang = "en-US";
-  normalUtterance.rate = 0.9;
-
-  const slowUtterance = new SpeechSynthesisUtterance(prompt);
-  slowUtterance.lang = "en-US";
-  slowUtterance.rate = 0.5;
-
-  normalUtterance.onend = () => {
-    speechSynthesis.speak(slowUtterance);
-  };
-
+  const utterance = new SpeechSynthesisUtterance(prompt);
+  utterance.lang = "en-US";
+  utterance.rate = 0.9;
   speechSynthesis.cancel();
   speechSynthesis.speak(normalUtterance);
 };
