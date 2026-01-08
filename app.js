@@ -149,7 +149,7 @@ const speakPrompt = (prompt) => {
   utterance.lang = "en-US";
   utterance.rate = 0.9;
   speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
+  speechSynthesis.speak(normalUtterance);
 };
 
 const updateStats = () => {
