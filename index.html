@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>自然拼读闯关 - 小小拼读家</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app__header">
+      <div>
+        <h1>小小拼读家</h1>
+        <p>听一听，选出正确的字母组合！</p>
+      </div>
+      <button class="ghost-button" id="openSticker">贴纸页</button>
+    </header>
+
+    <section class="stats">
+      <div class="stat">
+        <span>⭐ 星星</span>
+        <strong id="starCount">0</strong>
+      </div>
+      <div class="stat">
+        <span>✅ 连续答对</span>
+        <strong id="streakCount">0</strong>
+      </div>
+      <div class="stat">
+        <span>🕒 用时</span>
+        <strong id="timeCount">00:00</strong>
+      </div>
+    </section>
+
+    <section class="card" id="gameCard">
+      <div class="card__top">
+        <span class="badge" id="questionProgress">第 1 / 10 题</span>
+        <button class="primary-button" id="playSound">听声音</button>
+      </div>
+
+      <div class="prompt">
+        <div class="prompt__icon">🔊</div>
+        <div>
+          <h2>听音选正确字母组合</h2>
+          <p class="hint">提示：题目出现会自动播放，也可以点“听声音”重复播放。</p>
+        </div>
+      </div>
+
+      <div class="options" id="options"></div>
+
+      <div class="feedback" id="feedback"></div>
+
+      <button class="primary-button" id="nextQuestion" disabled>下一题</button>
+    </section>
+
+    <section class="card hidden" id="resultCard">
+      <h2>闯关完成 🎉</h2>
+      <div class="result">
+        <p>得分：<strong id="scoreResult">0</strong> / 10</p>
+        <p>用时：<strong id="timeResult">00:00</strong></p>
+      </div>
+      <div class="wrong" id="wrongList"></div>
+      <button class="primary-button" id="restartGame">再来一局</button>
+    </section>
+  </div>
+
+  <div class="sticker" id="stickerPage" aria-hidden="true">
+    <div class="sticker__panel">
+      <div class="sticker__header">
+        <h2>贴纸页</h2>
+        <button class="ghost-button" id="closeSticker">关闭</button>
+      </div>
+      <p class="sticker__tip">每攒够 3 颗星星就能解锁一张贴纸哦！</p>
+      <div class="sticker__grid" id="stickerGrid"></div>
+    </div>
+  </div>
+
+  <div class="star-animation" id="starAnimation">⭐ +1</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
