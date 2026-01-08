@@ -1,19 +1,19 @@
 const phonicsPool = [
-  { combo: "sh", audio: "audio/sh.mp3" },
-  { combo: "ch", audio: "audio/ch.mp3" },
-  { combo: "th", audio: "audio/th.mp3" },
-  { combo: "ai", audio: "audio/ai.mp3" },
-  { combo: "ee", audio: "audio/ee.mp3" },
-  { combo: "oa", audio: "audio/oa.mp3" },
-  { combo: "oo", audio: "audio/oo.mp3" },
-  { combo: "ou", audio: "audio/ou.mp3" },
-  { combo: "ar", audio: "audio/ar.mp3" },
-  { combo: "er", audio: "audio/er.mp3" },
-  { combo: "ir", audio: "audio/ir.mp3" },
-  { combo: "or", audio: "audio/or.mp3" },
-  { combo: "ph", audio: "audio/ph.mp3" },
-  { combo: "wh", audio: "audio/wh.mp3" },
-  { combo: "ck", audio: "audio/ck.mp3" }
+  { combo: "sh", voice: "sh" },
+  { combo: "ch", voice: "ch" },
+  { combo: "th", voice: "th" },
+  { combo: "ai", voice: "ai" },
+  { combo: "ee", voice: "ee" },
+  { combo: "oa", voice: "oa" },
+  { combo: "oo", voice: "oo" },
+  { combo: "ou", voice: "ou" },
+  { combo: "ar", voice: "ar" },
+  { combo: "er", voice: "er" },
+  { combo: "ir", voice: "ir" },
+  { combo: "or", voice: "or" },
+  { combo: "ph", voice: "ph" },
+  { combo: "wh", voice: "wh" },
+  { combo: "ck", voice: "ck" }
 ];
 
 const STORAGE_KEYS = {
@@ -54,9 +54,6 @@ const elements = {
   stickerGrid: document.getElementById("stickerGrid"),
   starAnimation: document.getElementById("starAnimation")
 };
-
-const audioPlayer = new Audio();
-audioPlayer.preload = "auto";
 
 const stickerList = [
   { label: "小兔子", emoji: "🐰" },
@@ -117,17 +114,16 @@ const buildQuestionSet = () => {
   return prioritized.slice(0, state.totalQuestions);
 };
 
-const playPhonicsAudio = (audioSrc) => {
-  if (!audioSrc) return;
-  if (audioPlayer.src !== audioSrc) {
-    audioPlayer.src = audioSrc;
+const speakCombo = (combo) => {
+  if (!("speechSynthesis" in window)) {
+    alert("当前浏览器不支持语音播放，请手动朗读字母组合。");
+    return;
   }
-  audioPlayer.currentTime = 0;
-  audioPlayer
-    .play()
-    .catch(() => {
-      // Autoplay might be blocked until a user interaction.
-    });
+  const utterance = new SpeechSynthesisUtterance(combo);
+  utterance.lang = "en-US";
+  utterance.rate = 0.8;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utterance);
 };
 
 const updateStats = () => {
@@ -181,8 +177,6 @@ const renderQuestion = () => {
     button.addEventListener("click", () => handleAnswer(button, option));
     elements.options.appendChild(button);
   });
-
-  playPhonicsAudio(state.currentQuestion.audio);
 };
 
 const updateWrongQueue = (combo, isCorrect) => {
@@ -305,7 +299,7 @@ const init = () => {
 
 elements.playSound.addEventListener("click", () => {
   if (state.currentQuestion) {
-    playPhonicsAudio(state.currentQuestion.audio);
+    speakCombo(state.currentQuestion.voice);
   }
 });
 
