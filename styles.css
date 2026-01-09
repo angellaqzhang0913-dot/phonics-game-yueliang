@@ -1,6 +1,6 @@
 :root {
   color-scheme: light;
-  --bg: #fff7f2;
+  --bg: #fff3f8;
   --card: #ffffff;
   --primary: #ff8aa1;
   --primary-dark: #f46b85;
@@ -20,7 +20,7 @@
 }
 
 body {
-  background: var(--bg);
+  background: radial-gradient(circle at top, #fff8f2 0%, var(--bg) 45%, #fdf4ff 100%);
   color: var(--text);
   min-height: 100vh;
   display: flex;
@@ -59,7 +59,7 @@ body {
 
 .stat {
   background: var(--card);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
@@ -69,12 +69,13 @@ body {
 
 .card {
   background: var(--card);
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: var(--shadow);
+  border-radius: 28px;
+  padding: 26px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   gap: 18px;
+  border: 2px solid #ffe7ef;
 }
 
 .card__top {
@@ -103,7 +104,7 @@ body {
 .prompt__icon {
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: #ffe8ee;
   display: grid;
   place-items: center;
@@ -122,19 +123,30 @@ body {
 }
 
 .option {
-  padding: 16px 12px;
-  border-radius: 16px;
-  border: 2px solid transparent;
+  padding: 18px 12px;
+  border-radius: 20px;
+  border: 2px solid #ffe0ea;
   background: #fff7fb;
   font-size: 20px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 6px 14px rgba(255, 138, 161, 0.2);
 }
 
 .option:hover {
   transform: translateY(-2px);
   border-color: var(--primary);
+  box-shadow: 0 10px 18px rgba(255, 138, 161, 0.28);
+}
+
+.option:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.option.selected {
+  border-color: var(--primary-dark);
+  background: #fff1f6;
 }
 
 .option.correct {
@@ -147,11 +159,16 @@ body {
   border-color: var(--error);
   background: #ffeaea;
   color: var(--error);
+  animation: wrongShake 0.4s ease;
 }
 
 .option:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.option.correct.celebrate {
+  animation: correctBounce 0.5s ease;
 }
 
 .feedback {
@@ -191,6 +208,11 @@ body {
   background: #f5c2cc;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.primary-button:active,
+.ghost-button:active {
+  transform: translateY(2px) scale(0.98);
 }
 
 .ghost-button {
@@ -279,24 +301,78 @@ body {
   color: #a0a0a0;
 }
 
-.star-animation {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #fff3b0;
-  padding: 10px 18px;
-  border-radius: 999px;
+.review-notice {
+  background: #fff3c4;
+  border: 2px solid #ffe6a2;
+  color: #9b6b00;
+  padding: 10px 16px;
+  border-radius: 16px;
   font-weight: 700;
   box-shadow: var(--shadow);
   opacity: 0;
-  transform: translateY(-20px);
-  transition: all 0.4s ease;
-  z-index: 20;
+  transform: translateY(-6px);
+  transition: all 0.3s ease;
+  pointer-events: none;
 }
 
-.star-animation.show {
+.review-notice.show {
   opacity: 1;
   transform: translateY(0);
+}
+
+.star-fly {
+  position: fixed;
+  z-index: 30;
+  font-size: 22px;
+  pointer-events: none;
+  animation: starFly 0.8s ease-in-out forwards;
+}
+
+@keyframes starFly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0.4);
+    opacity: 0.2;
+  }
+}
+
+@keyframes correctBounce {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes wrongShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option.correct.celebrate,
+  .option.wrong,
+  .star-fly {
+    animation: none;
+  }
 }
 
 @media (max-width: 600px) {
@@ -315,5 +391,22 @@ body {
   .prompt__icon {
     width: 48px;
     height: 48px;
+  }
+
+  .options {
+    grid-template-columns: 1fr;
+  }
+
+  .option {
+    font-size: 22px;
+    padding: 20px 16px;
+  }
+
+  #nextQuestion {
+    position: sticky;
+    bottom: 12px;
+    width: 100%;
+    align-self: center;
+    box-shadow: 0 10px 20px rgba(244, 107, 133, 0.28);
   }
 }
