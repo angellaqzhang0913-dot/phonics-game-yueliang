@@ -31,13 +31,17 @@
       </div>
     </section>
 
+    <div class="review-notice" id="reviewNotice" role="status" aria-live="polite">
+      已加入复习箱✅
+    </div>
+
     <section class="card" id="gameCard">
       <div class="card__top">
         <span class="badge" id="questionProgress">第 1 / 10 题</span>
         <button class="primary-button" id="playSound">🔊 再听一次</button>
       </div>
 
-      <div class="prompt">
+      <div class="prompt" id="promptArea">
         <div class="prompt__icon">🔊</div>
         <div>
           <h2>听一听，选正确的拼写</h2>
@@ -73,8 +77,6 @@
       <div class="sticker__grid" id="stickerGrid"></div>
     </div>
   </div>
-
-  <div class="star-animation" id="starAnimation">⭐ +1</div>
 
   <script src="app.js"></script>
 </body>

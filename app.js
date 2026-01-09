@@ -56,7 +56,9 @@ const state = {
   wrongThisRound: [],
   questionSet: [],
   startTime: null,
-  timerInterval: null
+  timerInterval: null,
+  isSpeaking: false,
+  reviewNoticeTimeout: null
 };
 
 const elements = {
@@ -78,7 +80,8 @@ const elements = {
   closeSticker: document.getElementById("closeSticker"),
   stickerPage: document.getElementById("stickerPage"),
   stickerGrid: document.getElementById("stickerGrid"),
-  starAnimation: document.getElementById("starAnimation")
+  reviewNotice: document.getElementById("reviewNotice"),
+  promptArea: document.getElementById("promptArea")
 };
 
 const stickerList = [
@@ -131,6 +134,12 @@ const formatTime = (elapsedMs) => {
   return `${minutes}:${seconds}`;
 };
 
+const setSpeakingStatus = (isSpeaking) => {
+  state.isSpeaking = isSpeaking;
+  elements.playSound.disabled = isSpeaking;
+  elements.playSound.textContent = isSpeaking ? "正在朗读…" : "🔊 再听一次";
+};
+
 const buildQuestionSet = () => {
   const wrongQueue = getStoredArray(STORAGE_KEYS.wrongQueue);
   const wrongPool = questionBank.filter((item) => wrongQueue.includes(item.prompt));
@@ -145,8 +154,10 @@ const speakPrompt = (prompt) => {
   const Utterance = window.SpeechSynthesisUtterance;
   if (!speechSynthesisApi || !Utterance) {
     alert("当前浏览器不支持语音播放，请手动朗读单词。");
+    setSpeakingStatus(false);
     return;
   }
+  setSpeakingStatus(true);
   const firstUtterance = new Utterance(prompt);
   firstUtterance.lang = "en-US";
   firstUtterance.rate = 1.0;
@@ -155,9 +166,22 @@ const speakPrompt = (prompt) => {
   slowUtterance.lang = "en-US";
   slowUtterance.rate = 0.05;
 
-  firstUtterance.onend = () => {
-    speechSynthesisApi.speak(slowUtterance);
+  let finished = false;
+  const finishSpeaking = () => {
+    if (finished) return;
+    finished = true;
+    setSpeakingStatus(false);
   };
+
+  firstUtterance.onend = () => {
+    setTimeout(() => {
+      speechSynthesisApi.speak(slowUtterance);
+    }, 350);
+  };
+  firstUtterance.onerror = finishSpeaking;
+
+  slowUtterance.onend = finishSpeaking;
+  slowUtterance.onerror = finishSpeaking;
 
   speechSynthesisApi.cancel();
   speechSynthesisApi.speak(firstUtterance);
@@ -171,6 +195,17 @@ const updateStats = () => {
 const updateTimer = () => {
   if (!state.startTime) return;
   elements.timeCount.textContent = formatTime(Date.now() - state.startTime);
+};
+
+const showReviewNotice = () => {
+  if (!elements.reviewNotice) return;
+  elements.reviewNotice.classList.add("show");
+  if (state.reviewNoticeTimeout) {
+    clearTimeout(state.reviewNoticeTimeout);
+  }
+  state.reviewNoticeTimeout = setTimeout(() => {
+    elements.reviewNotice.classList.remove("show");
+  }, 1400);
 };
 
 const startTimer = () => {
@@ -223,10 +258,27 @@ const updateWrongQueue = (prompt, isCorrect) => {
 };
 
 const showStarAnimation = () => {
-  elements.starAnimation.classList.add("show");
-  setTimeout(() => {
-    elements.starAnimation.classList.remove("show");
-  }, 800);
+  const origin = elements.promptArea || elements.gameCard;
+  if (!origin || !elements.starCount) return;
+  const originRect = origin.getBoundingClientRect();
+  const targetRect = elements.starCount.getBoundingClientRect();
+  const startX = originRect.left + originRect.width / 2;
+  const startY = originRect.top + originRect.height / 2;
+  const endX = targetRect.left + targetRect.width / 2;
+  const endY = targetRect.top + targetRect.height / 2;
+
+  const star = document.createElement("div");
+  star.className = "star-fly";
+  star.textContent = "⭐";
+  star.style.left = `${startX}px`;
+  star.style.top = `${startY}px`;
+  star.style.setProperty("--dx", `${endX - startX}px`);
+  star.style.setProperty("--dy", `${endY - startY}px`);
+  document.body.appendChild(star);
+
+  star.addEventListener("animationend", () => {
+    star.remove();
+  });
 };
 
 const handleAnswer = (button, option) => {
@@ -239,10 +291,12 @@ const handleAnswer = (button, option) => {
       btn.classList.add("correct");
     }
   });
+  button.classList.add("selected");
 
   if (isCorrect) {
     state.score += 1;
     state.streak += 1;
+    button.classList.add("celebrate");
     elements.feedback.textContent = "太棒啦！答对了！";
     elements.feedback.classList.add("success");
     const stars = getStars() + 1;
@@ -254,6 +308,7 @@ const handleAnswer = (button, option) => {
     elements.feedback.textContent = `再试试～正确答案是 ${state.currentQuestion.answer}`;
     elements.feedback.classList.add("error");
     state.wrongThisRound.push(state.currentQuestion.prompt);
+    showReviewNotice();
   }
 
   updateWrongQueue(state.currentQuestion.prompt, isCorrect);
@@ -298,6 +353,7 @@ const startGame = () => {
   elements.resultCard.classList.add("hidden");
   updateStats();
   startTimer();
+  setSpeakingStatus(false);
   renderQuestion();
 };
 
