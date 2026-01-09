@@ -141,24 +141,26 @@ const buildQuestionSet = () => {
 };
 
 const speakPrompt = (prompt) => {
-  if (!("speechSynthesis" in window)) {
+  const speechSynthesisApi = window.speechSynthesis;
+  const Utterance = window.SpeechSynthesisUtterance;
+  if (!speechSynthesisApi || !Utterance) {
     alert("当前浏览器不支持语音播放，请手动朗读单词。");
     return;
   }
-  const firstUtterance = new SpeechSynthesisUtterance(prompt);
+  const firstUtterance = new Utterance(prompt);
   firstUtterance.lang = "en-US";
   firstUtterance.rate = 1.0;
 
-  const slowUtterance = new SpeechSynthesisUtterance(prompt);
+  const slowUtterance = new Utterance(prompt);
   slowUtterance.lang = "en-US";
-  slowUtterance.rate = 0.5;
+  slowUtterance.rate = 0.35;
 
   firstUtterance.onend = () => {
-    speechSynthesis.speak(slowUtterance);
+    speechSynthesisApi.speak(slowUtterance);
   };
 
-  speechSynthesis.cancel();
-  speechSynthesis.speak(firstUtterance);
+  speechSynthesisApi.cancel();
+  speechSynthesisApi.speak(firstUtterance);
 };
 
 const updateStats = () => {
