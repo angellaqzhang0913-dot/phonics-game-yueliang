@@ -1,19 +1,45 @@
-const phonicsPool = [
-  { combo: "sh", voice: "sh" },
-  { combo: "ch", voice: "ch" },
-  { combo: "th", voice: "th" },
-  { combo: "ai", voice: "ai" },
-  { combo: "ee", voice: "ee" },
-  { combo: "oa", voice: "oa" },
-  { combo: "oo", voice: "oo" },
-  { combo: "ou", voice: "ou" },
-  { combo: "ar", voice: "ar" },
-  { combo: "er", voice: "er" },
-  { combo: "ir", voice: "ir" },
-  { combo: "or", voice: "or" },
-  { combo: "ph", voice: "ph" },
-  { combo: "wh", voice: "wh" },
-  { combo: "ck", voice: "ck" }
+const questionBank = [
+  // th
+  { target: "th", prompt: "thin", choices: ["thin", "sin", "fin"], answer: "thin" },
+  { target: "th", prompt: "three", choices: ["three", "free", "tree"], answer: "three" },
+  { target: "th", prompt: "think", choices: ["think", "sink", "pink"], answer: "think" },
+  { target: "th", prompt: "thumb", choices: ["thumb", "sum", "hum"], answer: "thumb" },
+  { target: "th", prompt: "bath", choices: ["bath", "back", "batch"], answer: "bath" },
+
+  // sh
+  { target: "sh", prompt: "ship", choices: ["ship", "sip", "chip"], answer: "ship" },
+  { target: "sh", prompt: "shop", choices: ["shop", "chop", "stop"], answer: "shop" },
+  { target: "sh", prompt: "she", choices: ["she", "see", "key"], answer: "she" },
+  { target: "sh", prompt: "fish", choices: ["fish", "fist", "fit"], answer: "fish" },
+  { target: "sh", prompt: "shoe", choices: ["shoe", "show", "so"], answer: "shoe" },
+
+  // ch
+  { target: "ch", prompt: "chip", choices: ["chip", "ship", "sip"], answer: "chip" },
+  { target: "ch", prompt: "chin", choices: ["chin", "shin", "sin"], answer: "chin" },
+  { target: "ch", prompt: "chat", choices: ["chat", "that", "cat"], answer: "chat" },
+  { target: "ch", prompt: "check", choices: ["check", "neck", "deck"], answer: "check" },
+  { target: "ch", prompt: "much", choices: ["much", "mush", "rush"], answer: "much" },
+
+  // ai
+  { target: "ai", prompt: "rain", choices: ["rain", "ran", "ring"], answer: "rain" },
+  { target: "ai", prompt: "mail", choices: ["mail", "mill", "meal"], answer: "mail" },
+  { target: "ai", prompt: "tail", choices: ["tail", "tell", "tall"], answer: "tail" },
+  { target: "ai", prompt: "wait", choices: ["wait", "wet", "want"], answer: "wait" },
+  { target: "ai", prompt: "pain", choices: ["pain", "pan", "pen"], answer: "pain" },
+
+  // ee
+  { target: "ee", prompt: "see", choices: ["see", "she", "sea"], answer: "see" },
+  { target: "ee", prompt: "feet", choices: ["feet", "fit", "fat"], answer: "feet" },
+  { target: "ee", prompt: "green", choices: ["green", "grin", "grain"], answer: "green" },
+  { target: "ee", prompt: "sleep", choices: ["sleep", "slip", "step"], answer: "sleep" },
+  { target: "ee", prompt: "tree", choices: ["tree", "try", "three"], answer: "tree" },
+
+  // oa
+  { target: "oa", prompt: "boat", choices: ["boat", "boot", "beat"], answer: "boat" },
+  { target: "oa", prompt: "coat", choices: ["coat", "cot", "cut"], answer: "coat" },
+  { target: "oa", prompt: "road", choices: ["road", "read", "rid"], answer: "road" },
+  { target: "oa", prompt: "goat", choices: ["goat", "got", "gate"], answer: "goat" },
+  { target: "oa", prompt: "soap", choices: ["soap", "soup", "sip"], answer: "soap" }
 ];
 
 const STORAGE_KEYS = {
@@ -107,23 +133,32 @@ const formatTime = (elapsedMs) => {
 
 const buildQuestionSet = () => {
   const wrongQueue = getStoredArray(STORAGE_KEYS.wrongQueue);
-  const wrongPool = phonicsPool.filter((item) => wrongQueue.includes(item.combo));
-  const available = phonicsPool.filter((item) => !wrongQueue.includes(item.combo));
+  const wrongPool = questionBank.filter((item) => wrongQueue.includes(item.prompt));
+  const available = questionBank.filter((item) => !wrongQueue.includes(item.prompt));
 
   const prioritized = shuffle(wrongPool).concat(shuffle(available));
   return prioritized.slice(0, state.totalQuestions);
 };
 
-const speakCombo = (combo) => {
+const speakPrompt = (prompt) => {
   if (!("speechSynthesis" in window)) {
-    alert("当前浏览器不支持语音播放，请手动朗读字母组合。");
+    alert("当前浏览器不支持语音播放，请手动朗读单词。");
     return;
   }
-  const utterance = new SpeechSynthesisUtterance(combo);
-  utterance.lang = "en-US";
-  utterance.rate = 0.8;
+  const firstUtterance = new SpeechSynthesisUtterance(prompt);
+  firstUtterance.lang = "en-US";
+  firstUtterance.rate = 1.0;
+
+  const slowUtterance = new SpeechSynthesisUtterance(prompt);
+  slowUtterance.lang = "en-US";
+  slowUtterance.rate = 0.5;
+
+  firstUtterance.onend = () => {
+    speechSynthesis.speak(slowUtterance);
+  };
+
   speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
+  speechSynthesis.speak(firstUtterance);
 };
 
 const updateStats = () => {
@@ -152,12 +187,6 @@ const stopTimer = () => {
   }
 };
 
-const buildOptions = (answer) => {
-  const pool = phonicsPool.filter((item) => item.combo !== answer.combo);
-  const distractors = shuffle(pool).slice(0, 2);
-  return shuffle([answer, ...distractors]);
-};
-
 const renderQuestion = () => {
   state.currentQuestion = state.questionSet[state.currentIndex];
   if (!state.currentQuestion) return;
@@ -167,24 +196,26 @@ const renderQuestion = () => {
   elements.feedback.className = "feedback";
   elements.nextQuestion.disabled = true;
 
-  const options = buildOptions(state.currentQuestion);
   elements.options.innerHTML = "";
 
+  const options = shuffle(state.currentQuestion.choices);
   options.forEach((option) => {
     const button = document.createElement("button");
     button.className = "option";
-    button.textContent = option.combo;
+    button.textContent = option;
     button.addEventListener("click", () => handleAnswer(button, option));
     elements.options.appendChild(button);
   });
+
+  speakPrompt(state.currentQuestion.prompt);
 };
 
-const updateWrongQueue = (combo, isCorrect) => {
+const updateWrongQueue = (prompt, isCorrect) => {
   const wrongQueue = new Set(getStoredArray(STORAGE_KEYS.wrongQueue));
   if (!isCorrect) {
-    wrongQueue.add(combo);
+    wrongQueue.add(prompt);
   } else {
-    wrongQueue.delete(combo);
+    wrongQueue.delete(prompt);
   }
   setStoredArray(STORAGE_KEYS.wrongQueue, Array.from(wrongQueue));
 };
@@ -197,11 +228,11 @@ const showStarAnimation = () => {
 };
 
 const handleAnswer = (button, option) => {
-  const isCorrect = option.combo === state.currentQuestion.combo;
+  const isCorrect = option === state.currentQuestion.answer;
   const optionButtons = Array.from(elements.options.querySelectorAll("button"));
   optionButtons.forEach((btn) => {
     btn.disabled = true;
-    const isAnswer = btn.textContent === state.currentQuestion.combo;
+    const isAnswer = btn.textContent === state.currentQuestion.answer;
     if (isAnswer) {
       btn.classList.add("correct");
     }
@@ -212,20 +243,18 @@ const handleAnswer = (button, option) => {
     state.streak += 1;
     elements.feedback.textContent = "太棒啦！答对了！";
     elements.feedback.classList.add("success");
-    if (state.streak % 3 === 0) {
-      const stars = getStars() + 1;
-      setStars(stars);
-      showStarAnimation();
-    }
+    const stars = getStars() + 1;
+    setStars(stars);
+    showStarAnimation();
   } else {
     state.streak = 0;
     button.classList.add("wrong");
-    elements.feedback.textContent = `再试试～正确答案是 ${state.currentQuestion.combo}`;
+    elements.feedback.textContent = `再试试～正确答案是 ${state.currentQuestion.answer}`;
     elements.feedback.classList.add("error");
-    state.wrongThisRound.push(state.currentQuestion.combo);
+    state.wrongThisRound.push(state.currentQuestion.prompt);
   }
 
-  updateWrongQueue(state.currentQuestion.combo, isCorrect);
+  updateWrongQueue(state.currentQuestion.prompt, isCorrect);
   updateStats();
   elements.nextQuestion.disabled = false;
 };
@@ -299,7 +328,7 @@ const init = () => {
 
 elements.playSound.addEventListener("click", () => {
   if (state.currentQuestion) {
-    speakCombo(state.currentQuestion.voice);
+    speakPrompt(state.currentQuestion.prompt);
   }
 });
 
