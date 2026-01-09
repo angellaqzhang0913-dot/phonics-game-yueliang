@@ -153,7 +153,7 @@ const speakPrompt = (prompt) => {
 
   const slowUtterance = new Utterance(prompt);
   slowUtterance.lang = "en-US";
-  slowUtterance.rate = 0.1;
+  slowUtterance.rate = 0.05;
 
   firstUtterance.onend = () => {
     speechSynthesisApi.speak(slowUtterance);
