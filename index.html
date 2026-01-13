@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>自然拼读闯关 - 小小拼读家</title>
+  <title>吃豆人迷宫闯关 - 小小拼读家</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,23 +11,27 @@
     <header class="app__header">
       <div>
         <h1>小小拼读家</h1>
-        <p>听一听，选正确的拼写</p>
+        <p>吃豆人迷宫闯关：听音找正确拼写</p>
       </div>
       <button class="ghost-button" id="openSticker">贴纸页</button>
     </header>
 
     <section class="stats">
       <div class="stat">
+        <span>🎯 关卡</span>
+        <strong id="levelProgress">1 / 10</strong>
+      </div>
+      <div class="stat">
+        <span>💎 宝石</span>
+        <strong id="gemCount">0</strong>
+      </div>
+      <div class="stat">
+        <span>❤️ 心心</span>
+        <strong id="heartCount">3</strong>
+      </div>
+      <div class="stat">
         <span>⭐ 星星</span>
         <strong id="starCount">0</strong>
-      </div>
-      <div class="stat">
-        <span>✅ 连续答对</span>
-        <strong id="streakCount">0</strong>
-      </div>
-      <div class="stat">
-        <span>🕒 用时</span>
-        <strong id="timeCount">00:00</strong>
       </div>
     </section>
 
@@ -37,32 +41,28 @@
 
     <section class="card" id="gameCard">
       <div class="card__top">
-        <span class="badge" id="questionProgress">第 1 / 10 题</span>
+        <span class="badge" id="questionProgress">第 1 / 10 关</span>
         <button class="primary-button" id="playSound">🔊 再听一次</button>
       </div>
 
-      <div class="prompt" id="promptArea">
-        <div class="prompt__icon">🔊</div>
-        <div>
-          <h2>听一听，选正确的拼写</h2>
-          <p class="hint">提示：系统会自动朗读单词，可点“🔊 再听一次”。</p>
-        </div>
+      <div class="maze" id="maze">
+        <div class="maze__exit">出口</div>
+        <div class="maze__junction"></div>
+        <div class="pellet" data-choice="left" id="pelletLeft"></div>
+        <div class="pellet" data-choice="down" id="pelletDown"></div>
+        <div class="pellet" data-choice="right" id="pelletRight"></div>
+        <div class="pacman" id="pacman" aria-label="pacman"></div>
       </div>
 
-      <div class="options" id="options"></div>
-
-      <div class="feedback" id="feedback"></div>
-
-      <button class="primary-button" id="nextQuestion" disabled>下一题</button>
+      <div class="maze__hint">方向键 / WASD 移动，吃到正确拼写就能过关。</div>
     </section>
 
     <section class="card hidden" id="resultCard">
-      <h2>闯关完成 🎉</h2>
+      <h2 id="resultTitle">闯关完成 🎉</h2>
       <div class="result">
-        <p>得分：<strong id="scoreResult">0</strong> / 10</p>
-        <p>用时：<strong id="timeResult">00:00</strong></p>
+        <p>获得宝石：<strong id="scoreResult">0</strong> / 10</p>
       </div>
-      <div class="wrong" id="wrongList"></div>
+      <p class="result__message" id="resultMessage"></p>
       <button class="primary-button" id="restartGame">再来一局</button>
     </section>
   </div>
