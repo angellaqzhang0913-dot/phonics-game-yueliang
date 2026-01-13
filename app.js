@@ -216,219 +216,223 @@ class MazeScene extends Phaser.Scene {
     this.wasd = null;
   }
 
-const setPacmanPosition = (x, y) => {
-  const mazeRect = elements.maze.getBoundingClientRect();
-  const size = elements.pacman.offsetWidth;
-  const maxX = mazeRect.width - size;
-  const maxY = mazeRect.height - size;
-  state.pacman.x = Math.min(Math.max(0, x), maxX);
-  state.pacman.y = Math.min(Math.max(0, y), maxY);
-  elements.pacman.style.transform = `translate(${state.pacman.x}px, ${state.pacman.y}px)`;
-};
+  setPacmanPosition(x, y) {
+    const mazeRect = elements.maze.getBoundingClientRect();
+    const size = elements.pacman.offsetWidth;
+    const maxX = mazeRect.width - size;
+    const maxY = mazeRect.height - size;
+    state.pacman.x = Math.min(Math.max(0, x), maxX);
+    state.pacman.y = Math.min(Math.max(0, y), maxY);
+    elements.pacman.style.transform = `translate(${state.pacman.x}px, ${state.pacman.y}px)`;
+  }
 
-const resetPacman = () => {
-  const mazeRect = elements.maze.getBoundingClientRect();
-  const size = elements.pacman.offsetWidth;
-  setPacmanPosition(mazeRect.width / 2 - size / 2, mazeRect.height / 2 - size / 2);
-  state.pacman.vx = 0;
-  state.pacman.vy = 0;
-};
+  resetPacman() {
+    const mazeRect = elements.maze.getBoundingClientRect();
+    const size = elements.pacman.offsetWidth;
+    this.setPacmanPosition(mazeRect.width / 2 - size / 2, mazeRect.height / 2 - size / 2);
+    state.pacman.vx = 0;
+    state.pacman.vy = 0;
+  }
 
-const positionPellets = (choices) => {
-  const [left, down, right] = choices;
-  elements.pelletLeft.textContent = left;
-  elements.pelletDown.textContent = down;
-  elements.pelletRight.textContent = right;
+  positionPellets(choices) {
+    const [left, down, right] = choices;
+    elements.pelletLeft.textContent = left;
+    elements.pelletDown.textContent = down;
+    elements.pelletRight.textContent = right;
 
-  elements.pelletLeft.className = "pellet pellet--left";
-  elements.pelletDown.className = "pellet pellet--down";
-  elements.pelletRight.className = "pellet pellet--right";
-};
+    elements.pelletLeft.className = "pellet pellet--left";
+    elements.pelletDown.className = "pellet pellet--down";
+    elements.pelletRight.className = "pellet pellet--right";
+  }
 
-  update() {
+  renderQuestion() {
     if (!this.pacman || state.isTransitioning || this.resultLayer.visible) {
       return;
     }
 
-  const options = shuffle(state.currentQuestion.choices);
-  positionPellets(options);
-  updateStats();
-  resetPacman();
-  speakPrompt(state.currentQuestion.prompt);
-};
-
-const handleCorrect = () => {
-  state.score += 1;
-  const stars = getStars() + 1;
-  setStars(stars);
-  updateWrongQueue(state.currentQuestion.prompt, true);
-  updateStats();
-
-  if (state.currentIndex >= state.totalQuestions - 1) {
-    showResults();
-    return;
+    const options = shuffle(state.currentQuestion.choices);
+    this.positionPellets(options);
+    updateStats();
+    this.resetPacman();
+    speakPrompt(state.currentQuestion.prompt);
   }
 
-  state.currentIndex += 1;
-  renderQuestion();
-  state.isResolving = false;
-};
+  handleCorrect() {
+    state.score += 1;
+    const stars = getStars() + 1;
+    setStars(stars);
+    updateWrongQueue(state.currentQuestion.prompt, true);
+    updateStats();
 
-const handleWrong = () => {
-  state.hearts = Math.max(0, state.hearts - 1);
-  updateWrongQueue(state.currentQuestion.prompt, false);
-  showReviewNotice();
-  updateStats();
-  positionPellets(shuffle(state.currentQuestion.choices));
-  resetPacman();
-  state.isResolving = false;
-};
-
-const showResults = () => {
-  state.isActive = false;
-  stopMovement();
-  elements.scoreResult.textContent = state.score;
-  elements.gameCard.classList.add("hidden");
-  elements.resultCard.classList.remove("hidden");
-
-  if (state.score >= 7) {
-    elements.resultTitle.textContent = "出口开启通关 🎉";
-    elements.resultMessage.textContent = "你已收集足够宝石，成功通过迷宫！";
-  } else {
-    elements.resultTitle.textContent = "未达到 7 个宝石";
-    elements.resultMessage.textContent = "未达到 7 个宝石，再来一次吧！";
-  }
-
-const movePacman = () => {
-  if (!state.isActive) return;
-  const { vx, vy, speed } = state.pacman;
-  if (vx === 0 && vy === 0) return;
-  setPacmanPosition(state.pacman.x + vx * speed, state.pacman.y + vy * speed);
-  checkCollision();
-};
-
-const startMovement = () => {
-  if (state.moveInterval) {
-    clearInterval(state.moveInterval);
-  }
-  state.moveInterval = setInterval(movePacman, 16);
-};
-
-const stopMovement = () => {
-  if (state.moveInterval) {
-    clearInterval(state.moveInterval);
-    state.moveInterval = null;
-  }
-};
-
-const checkCollision = () => {
-  if (state.isResolving) return;
-  const pacmanRect = elements.pacman.getBoundingClientRect();
-  const pellets = [elements.pelletLeft, elements.pelletDown, elements.pelletRight];
-  pellets.forEach((pellet) => {
-    if (pellet.classList.contains("eaten")) return;
-    const pelletRect = pellet.getBoundingClientRect();
-    const hit =
-      pacmanRect.left < pelletRect.right &&
-      pacmanRect.right > pelletRect.left &&
-      pacmanRect.top < pelletRect.bottom &&
-      pacmanRect.bottom > pelletRect.top;
-    if (hit) {
-      state.isResolving = true;
-      pellet.classList.add("eaten");
-      const choiceText = pellet.textContent;
-      if (choiceText === state.currentQuestion.answer) {
-        handleCorrect();
-      } else {
-        handleWrong();
-      }
+    if (state.currentIndex >= state.totalQuestions - 1) {
+      this.showResults();
+      return;
     }
-  });
-};
 
-const handleKeyDown = (event) => {
-  if (!state.isActive) return;
-  const key = event.key.toLowerCase();
-  if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
-    event.preventDefault();
+    state.currentIndex += 1;
+    this.renderQuestion();
+    state.isResolving = false;
   }
 
-  switch (key) {
-    case "arrowup":
-    case "w":
-      state.pacman.vx = 0;
-      state.pacman.vy = -1;
-      break;
-    case "arrowdown":
-    case "s":
-      state.pacman.vx = 0;
-      state.pacman.vy = 1;
-      break;
-    case "arrowleft":
-    case "a":
-      state.pacman.vx = -1;
+  handleWrong() {
+    state.hearts = Math.max(0, state.hearts - 1);
+    updateWrongQueue(state.currentQuestion.prompt, false);
+    showReviewNotice();
+    updateStats();
+    this.positionPellets(shuffle(state.currentQuestion.choices));
+    this.resetPacman();
+    state.isResolving = false;
+  }
+
+  showResults() {
+    state.isActive = false;
+    this.stopMovement();
+    elements.scoreResult.textContent = state.score;
+    elements.gameCard.classList.add("hidden");
+    elements.resultCard.classList.remove("hidden");
+
+    if (state.score >= 7) {
+      elements.resultTitle.textContent = "出口开启通关 🎉";
+      elements.resultMessage.textContent = "你已收集足够宝石，成功通过迷宫！";
+    } else {
+      elements.resultTitle.textContent = "未达到 7 个宝石";
+      elements.resultMessage.textContent = "未达到 7 个宝石，再来一次吧！";
+    }
+  }
+
+  movePacman() {
+    if (!state.isActive) return;
+    const { vx, vy, speed } = state.pacman;
+    if (vx === 0 && vy === 0) return;
+    this.setPacmanPosition(state.pacman.x + vx * speed, state.pacman.y + vy * speed);
+    this.checkCollision();
+  }
+
+  startMovement() {
+    if (state.moveInterval) {
+      clearInterval(state.moveInterval);
+    }
+    state.moveInterval = setInterval(() => this.movePacman(), 16);
+  }
+
+  stopMovement() {
+    if (state.moveInterval) {
+      clearInterval(state.moveInterval);
+      state.moveInterval = null;
+    }
+  }
+
+  checkCollision() {
+    if (state.isResolving) return;
+    const pacmanRect = elements.pacman.getBoundingClientRect();
+    const pellets = [elements.pelletLeft, elements.pelletDown, elements.pelletRight];
+    pellets.forEach((pellet) => {
+      if (pellet.classList.contains("eaten")) return;
+      const pelletRect = pellet.getBoundingClientRect();
+      const hit =
+        pacmanRect.left < pelletRect.right &&
+        pacmanRect.right > pelletRect.left &&
+        pacmanRect.top < pelletRect.bottom &&
+        pacmanRect.bottom > pelletRect.top;
+      if (hit) {
+        state.isResolving = true;
+        pellet.classList.add("eaten");
+        const choiceText = pellet.textContent;
+        if (choiceText === state.currentQuestion.answer) {
+          this.handleCorrect();
+        } else {
+          this.handleWrong();
+        }
+      }
+    });
+  }
+
+  handleKeyDown(event) {
+    if (!state.isActive) return;
+    const key = event.key.toLowerCase();
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
+      event.preventDefault();
+    }
+
+    switch (key) {
+      case "arrowup":
+      case "w":
+        state.pacman.vx = 0;
+        state.pacman.vy = -1;
+        break;
+      case "arrowdown":
+      case "s":
+        state.pacman.vx = 0;
+        state.pacman.vy = 1;
+        break;
+      case "arrowleft":
+      case "a":
+        state.pacman.vx = -1;
+        state.pacman.vy = 0;
+        break;
+      case "arrowright":
+      case "d":
+        state.pacman.vx = 1;
+        state.pacman.vy = 0;
+        break;
+      default:
+        break;
+    }
+  }
+
+  handleKeyUp(event) {
+    const key = event.key.toLowerCase();
+    if (["arrowup", "w", "arrowdown", "s"].includes(key)) {
       state.pacman.vy = 0;
-      break;
-    case "arrowright":
-    case "d":
-      state.pacman.vx = 1;
-      state.pacman.vy = 0;
-      break;
-    default:
-      break;
+    }
+    if (["arrowleft", "a", "arrowright", "d"].includes(key)) {
+      state.pacman.vx = 0;
+    }
   }
-};
 
-const handleKeyUp = (event) => {
-  const key = event.key.toLowerCase();
-  if (["arrowup", "w", "arrowdown", "s"].includes(key)) {
-    state.pacman.vy = 0;
+  startGame() {
+    state.currentIndex = 0;
+    state.score = 0;
+    state.hearts = 3;
+    state.questionSet = buildQuestionSet();
+    state.isActive = true;
+    state.isResolving = false;
+    elements.gameCard.classList.remove("hidden");
+    elements.resultCard.classList.add("hidden");
+    setSpeakingStatus(false);
+    this.renderQuestion();
+    this.startMovement();
   }
-  if (["arrowleft", "a", "arrowright", "d"].includes(key)) {
-    state.pacman.vx = 0;
+
+  renderStickers() {
+    const stars = getStars();
+    elements.stickerGrid.innerHTML = "";
+    stickerList.forEach((sticker, index) => {
+      const threshold = (index + 1) * STAR_STEP;
+      const unlocked = stars >= threshold;
+      const item = document.createElement("div");
+      item.className = `sticker__item ${unlocked ? "" : "locked"}`.trim();
+      item.innerHTML = unlocked
+        ? `<div class="sticker__emoji">${sticker.emoji}</div><div>${sticker.label}</div>`
+        : `<div>🔒</div><div>还差 ${threshold - stars} 星</div>`;
+      elements.stickerGrid.appendChild(item);
+    });
   }
-};
 
-const startGame = () => {
-  state.currentIndex = 0;
-  state.score = 0;
-  state.hearts = 3;
-  state.questionSet = buildQuestionSet();
-  state.isActive = true;
-  state.isResolving = false;
-  elements.gameCard.classList.remove("hidden");
-  elements.resultCard.classList.add("hidden");
-  setSpeakingStatus(false);
-  renderQuestion();
-  startMovement();
-};
-
-const renderStickers = () => {
-  const stars = getStars();
-  elements.stickerGrid.innerHTML = "";
-  stickerList.forEach((sticker, index) => {
-    const threshold = (index + 1) * STAR_STEP;
-    const unlocked = stars >= threshold;
-    const item = document.createElement("div");
-    item.className = `sticker__item ${unlocked ? "" : "locked"}`.trim();
-    item.innerHTML = unlocked
-      ? `<div class="sticker__emoji">${sticker.emoji}</div><div>${sticker.label}</div>`
-      : `<div>🔒</div><div>还差 ${threshold - stars} 星</div>`;
-    elements.stickerGrid.appendChild(item);
-  });
-};
-
-const toggleSticker = (show) => {
-  elements.stickerPage.setAttribute("aria-hidden", show ? "false" : "true");
-  if (show) {
-    renderStickers();
+  toggleSticker(show) {
+    elements.stickerPage.setAttribute("aria-hidden", show ? "false" : "true");
+    if (show) {
+      this.renderStickers();
+    }
   }
-};
 
-const init = () => {
-  updateStats();
-  startGame();
-};
+  init() {
+    updateStats();
+    this.startGame();
+  }
+}
+
+const scene = new MazeScene();
 
 elements.playSound.addEventListener("click", () => {
   if (state.currentQuestion) {
@@ -436,20 +440,20 @@ elements.playSound.addEventListener("click", () => {
   }
 });
 
-elements.restartGame.addEventListener("click", startGame);
+elements.restartGame.addEventListener("click", () => scene.startGame());
 
-elements.openSticker.addEventListener("click", () => toggleSticker(true));
+elements.openSticker.addEventListener("click", () => scene.toggleSticker(true));
 
-elements.closeSticker.addEventListener("click", () => toggleSticker(false));
+elements.closeSticker.addEventListener("click", () => scene.toggleSticker(false));
 
 elements.stickerPage.addEventListener("click", (event) => {
   if (event.target === elements.stickerPage) {
-    toggleSticker(false);
+    scene.toggleSticker(false);
   }
 });
 
-window.addEventListener("keydown", handleKeyDown);
-window.addEventListener("keyup", handleKeyUp);
-window.addEventListener("resize", resetPacman);
+window.addEventListener("keydown", (event) => scene.handleKeyDown(event));
+window.addEventListener("keyup", (event) => scene.handleKeyUp(event));
+window.addEventListener("resize", () => scene.resetPacman());
 
-init();
+scene.init();
