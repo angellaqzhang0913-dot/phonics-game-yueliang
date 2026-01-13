@@ -55,15 +55,36 @@ const state = {
   questionSet: [],
   hearts: 3,
   isSpeaking: false,
-  scene: null,
-  isTransitioning: false
+  reviewNoticeTimeout: null,
+  pacman: { x: 0, y: 0, speed: 3, vx: 0, vy: 0 },
+  isActive: true,
+  moveInterval: null,
+  isResolving: false
 };
 
 const elements = {
+  playSound: document.getElementById("playSound"),
+  questionProgress: document.getElementById("questionProgress"),
+  scoreResult: document.getElementById("scoreResult"),
+  resultCard: document.getElementById("resultCard"),
+  gameCard: document.getElementById("gameCard"),
+  restartGame: document.getElementById("restartGame"),
+  starCount: document.getElementById("starCount"),
+  levelProgress: document.getElementById("levelProgress"),
+  gemCount: document.getElementById("gemCount"),
+  heartCount: document.getElementById("heartCount"),
   openSticker: document.getElementById("openSticker"),
   closeSticker: document.getElementById("closeSticker"),
   stickerPage: document.getElementById("stickerPage"),
-  stickerGrid: document.getElementById("stickerGrid")
+  stickerGrid: document.getElementById("stickerGrid"),
+  reviewNotice: document.getElementById("reviewNotice"),
+  resultTitle: document.getElementById("resultTitle"),
+  resultMessage: document.getElementById("resultMessage"),
+  maze: document.getElementById("maze"),
+  pacman: document.getElementById("pacman"),
+  pelletLeft: document.getElementById("pelletLeft"),
+  pelletDown: document.getElementById("pelletDown"),
+  pelletRight: document.getElementById("pelletRight")
 };
 
 const stickerList = [
@@ -173,6 +194,14 @@ const updateWrongQueue = (prompt, isCorrect) => {
   setStoredArray(STORAGE_KEYS.wrongQueue, Array.from(wrongQueue));
 };
 
+const updateStats = () => {
+  elements.gemCount.textContent = state.score;
+  elements.heartCount.textContent = state.hearts;
+  elements.starCount.textContent = getStars();
+  elements.levelProgress.textContent = `${state.currentIndex + 1} / ${state.totalQuestions}`;
+  elements.questionProgress.textContent = `第 ${state.currentIndex + 1} / ${state.totalQuestions} 关`;
+};
+
 class MazeScene extends Phaser.Scene {
   constructor() {
     super("MazeScene");
@@ -187,376 +216,191 @@ class MazeScene extends Phaser.Scene {
     this.wasd = null;
   }
 
-  preload() {
-    this.load.setPath("assets");
-  }
+const setPacmanPosition = (x, y) => {
+  const mazeRect = elements.maze.getBoundingClientRect();
+  const size = elements.pacman.offsetWidth;
+  const maxX = mazeRect.width - size;
+  const maxY = mazeRect.height - size;
+  state.pacman.x = Math.min(Math.max(0, x), maxX);
+  state.pacman.y = Math.min(Math.max(0, y), maxY);
+  elements.pacman.style.transform = `translate(${state.pacman.x}px, ${state.pacman.y}px)`;
+};
 
-  create() {
-    state.scene = this;
-    this.createTextures();
-    this.drawMaze();
-    this.createHud();
-    this.createListenButton();
-    this.createPlayer();
-    this.createPellets();
-    this.createResultLayer();
+const resetPacman = () => {
+  const mazeRect = elements.maze.getBoundingClientRect();
+  const size = elements.pacman.offsetWidth;
+  setPacmanPosition(mazeRect.width / 2 - size / 2, mazeRect.height / 2 - size / 2);
+  state.pacman.vx = 0;
+  state.pacman.vy = 0;
+};
 
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.wasd = this.input.keyboard.addKeys("W,A,S,D");
+const positionPellets = (choices) => {
+  const [left, down, right] = choices;
+  elements.pelletLeft.textContent = left;
+  elements.pelletDown.textContent = down;
+  elements.pelletRight.textContent = right;
 
-    this.startGame();
-  }
+  elements.pelletLeft.className = "pellet pellet--left";
+  elements.pelletDown.className = "pellet pellet--down";
+  elements.pelletRight.className = "pellet pellet--right";
+};
 
   update() {
     if (!this.pacman || state.isTransitioning || this.resultLayer.visible) {
       return;
     }
 
-    const speed = 180;
-    let velocityX = 0;
-    let velocityY = 0;
+  const options = shuffle(state.currentQuestion.choices);
+  positionPellets(options);
+  updateStats();
+  resetPacman();
+  speakPrompt(state.currentQuestion.prompt);
+};
 
-    if (this.cursors.left.isDown || this.wasd.A.isDown) {
-      velocityX = -speed;
-    } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
-      velocityX = speed;
+const handleCorrect = () => {
+  state.score += 1;
+  const stars = getStars() + 1;
+  setStars(stars);
+  updateWrongQueue(state.currentQuestion.prompt, true);
+  updateStats();
+
+  if (state.currentIndex >= state.totalQuestions - 1) {
+    showResults();
+    return;
+  }
+
+  state.currentIndex += 1;
+  renderQuestion();
+  state.isResolving = false;
+};
+
+const handleWrong = () => {
+  state.hearts = Math.max(0, state.hearts - 1);
+  updateWrongQueue(state.currentQuestion.prompt, false);
+  showReviewNotice();
+  updateStats();
+  positionPellets(shuffle(state.currentQuestion.choices));
+  resetPacman();
+  state.isResolving = false;
+};
+
+const showResults = () => {
+  state.isActive = false;
+  stopMovement();
+  elements.scoreResult.textContent = state.score;
+  elements.gameCard.classList.add("hidden");
+  elements.resultCard.classList.remove("hidden");
+
+  if (state.score >= 7) {
+    elements.resultTitle.textContent = "出口开启通关 🎉";
+    elements.resultMessage.textContent = "你已收集足够宝石，成功通过迷宫！";
+  } else {
+    elements.resultTitle.textContent = "未达到 7 个宝石";
+    elements.resultMessage.textContent = "未达到 7 个宝石，再来一次吧！";
+  }
+
+const movePacman = () => {
+  if (!state.isActive) return;
+  const { vx, vy, speed } = state.pacman;
+  if (vx === 0 && vy === 0) return;
+  setPacmanPosition(state.pacman.x + vx * speed, state.pacman.y + vy * speed);
+  checkCollision();
+};
+
+const startMovement = () => {
+  if (state.moveInterval) {
+    clearInterval(state.moveInterval);
+  }
+  state.moveInterval = setInterval(movePacman, 16);
+};
+
+const stopMovement = () => {
+  if (state.moveInterval) {
+    clearInterval(state.moveInterval);
+    state.moveInterval = null;
+  }
+};
+
+const checkCollision = () => {
+  if (state.isResolving) return;
+  const pacmanRect = elements.pacman.getBoundingClientRect();
+  const pellets = [elements.pelletLeft, elements.pelletDown, elements.pelletRight];
+  pellets.forEach((pellet) => {
+    if (pellet.classList.contains("eaten")) return;
+    const pelletRect = pellet.getBoundingClientRect();
+    const hit =
+      pacmanRect.left < pelletRect.right &&
+      pacmanRect.right > pelletRect.left &&
+      pacmanRect.top < pelletRect.bottom &&
+      pacmanRect.bottom > pelletRect.top;
+    if (hit) {
+      state.isResolving = true;
+      pellet.classList.add("eaten");
+      const choiceText = pellet.textContent;
+      if (choiceText === state.currentQuestion.answer) {
+        handleCorrect();
+      } else {
+        handleWrong();
+      }
     }
+  });
+};
 
-    if (this.cursors.up.isDown || this.wasd.W.isDown) {
-      velocityY = -speed;
-    } else if (this.cursors.down.isDown || this.wasd.S.isDown) {
-      velocityY = speed;
-    }
-
-    this.pacman.setVelocity(velocityX, velocityY);
+const handleKeyDown = (event) => {
+  if (!state.isActive) return;
+  const key = event.key.toLowerCase();
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
+    event.preventDefault();
   }
 
-  createTextures() {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0xffd166, 1);
-    graphics.fillCircle(16, 16, 16);
-    graphics.generateTexture("pacman", 32, 32);
-    graphics.clear();
-
-    graphics.fillStyle(0xfff1b0, 1);
-    graphics.fillCircle(18, 18, 18);
-    graphics.generateTexture("pellet", 36, 36);
-    graphics.destroy();
+  switch (key) {
+    case "arrowup":
+    case "w":
+      state.pacman.vx = 0;
+      state.pacman.vy = -1;
+      break;
+    case "arrowdown":
+    case "s":
+      state.pacman.vx = 0;
+      state.pacman.vy = 1;
+      break;
+    case "arrowleft":
+    case "a":
+      state.pacman.vx = -1;
+      state.pacman.vy = 0;
+      break;
+    case "arrowright":
+    case "d":
+      state.pacman.vx = 1;
+      state.pacman.vy = 0;
+      break;
+    default:
+      break;
   }
+};
 
-  drawMaze() {
-    const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor("#fff8fd");
-
-    const graphics = this.add.graphics();
-    graphics.lineStyle(10, 0xffdbe6, 1);
-
-    const centerX = width / 2;
-    const centerY = height * 0.55;
-    const topY = height * 0.18;
-    const leftX = width * 0.25;
-    const rightX = width * 0.75;
-    const bottomY = height * 0.88;
-
-    graphics.beginPath();
-    graphics.moveTo(centerX, bottomY);
-    graphics.lineTo(centerX, centerY);
-    graphics.lineTo(leftX, centerY);
-    graphics.moveTo(centerX, centerY);
-    graphics.lineTo(rightX, centerY);
-    graphics.moveTo(centerX, centerY);
-    graphics.lineTo(centerX, topY);
-    graphics.strokePath();
-
-    graphics.fillStyle(0xeaf7ef, 1);
-    graphics.fillRoundedRect(centerX - 60, topY - 42, 120, 34, 16);
-    this.add
-      .text(centerX, topY - 25, "出口", {
-        fontSize: "16px",
-        fontStyle: "700",
-        color: "#3b9d5f"
-      })
-      .setOrigin(0.5);
+const handleKeyUp = (event) => {
+  const key = event.key.toLowerCase();
+  if (["arrowup", "w", "arrowdown", "s"].includes(key)) {
+    state.pacman.vy = 0;
   }
-
-  createHud() {
-    const { width } = this.scale;
-    this.hud.level = this.add.text(20, 16, "关卡 1/10", {
-      fontSize: "18px",
-      fontStyle: "700",
-      color: "#3b3b3b"
-    });
-    this.hud.gems = this.add.text(width * 0.3, 16, "💎 0", {
-      fontSize: "18px",
-      fontStyle: "700",
-      color: "#3b3b3b"
-    });
-    this.hud.hearts = this.add.text(width * 0.5, 16, "❤️ 3", {
-      fontSize: "18px",
-      fontStyle: "700",
-      color: "#3b3b3b"
-    });
-    this.hud.stars = this.add.text(width * 0.7, 16, "⭐ 0", {
-      fontSize: "18px",
-      fontStyle: "700",
-      color: "#3b3b3b"
-    });
-    this.hud.level.setDepth(5);
-    this.hud.gems.setDepth(5);
-    this.hud.hearts.setDepth(5);
-    this.hud.stars.setDepth(5);
+  if (["arrowleft", "a", "arrowright", "d"].includes(key)) {
+    state.pacman.vx = 0;
   }
+};
 
-  createListenButton() {
-    const { width } = this.scale;
-    const buttonWidth = 180;
-    const buttonHeight = 44;
-    const x = width - buttonWidth / 2 - 20;
-    const y = 56;
-
-    const button = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0xff8aa1, 1);
-    button.setStrokeStyle(2, 0xffd1dc);
-    button.setInteractive({ useHandCursor: true });
-
-    const label = this.add.text(x, y, "🔊 再听一次", {
-      fontSize: "16px",
-      fontStyle: "700",
-      color: "#ffffff"
-    });
-    label.setOrigin(0.5);
-
-    button.on("pointerdown", () => {
-      if (!state.currentQuestion || state.isSpeaking) return;
-      speakPrompt(state.currentQuestion.prompt);
-    });
-
-    this.listenButton = button;
-    this.listenLabel = label;
-    button.setDepth(5);
-    label.setDepth(5);
-  }
-
-  updateListenButton(isSpeaking) {
-    if (!this.listenButton || !this.listenLabel) return;
-    if (isSpeaking) {
-      this.listenButton.setFillStyle(0xf5c2cc, 1);
-      this.listenLabel.setText("正在朗读…");
-    } else {
-      this.listenButton.setFillStyle(0xff8aa1, 1);
-      this.listenLabel.setText("🔊 再听一次");
-    }
-  }
-
-  createPlayer() {
-    const { width, height } = this.scale;
-    this.pacman = this.physics.add.image(width / 2, height * 0.82, "pacman");
-    this.pacman.setCollideWorldBounds(true);
-    this.pacman.setCircle(16);
-    this.pacman.setDepth(3);
-  }
-
-  createPellets() {
-    const { width, height } = this.scale;
-    const positions = [
-      { x: width * 0.25, y: height * 0.55 },
-      { x: width * 0.5, y: height * 0.32 },
-      { x: width * 0.75, y: height * 0.55 }
-    ];
-
-    positions.forEach((pos) => {
-      const pellet = this.physics.add.image(pos.x, pos.y, "pellet");
-      pellet.setCircle(18);
-      pellet.setImmovable(true);
-      pellet.setDepth(2);
-      const label = this.add.text(pos.x, pos.y, "", {
-        fontSize: "16px",
-        fontStyle: "700",
-        color: "#8a5a00"
-      });
-      label.setOrigin(0.5);
-      label.setDepth(3);
-
-      this.pellets.push(pellet);
-      this.pelletLabels.push(label);
-    });
-
-    this.physics.add.overlap(this.pacman, this.pellets, this.handlePelletHit, null, this);
-  }
-
-  createResultLayer() {
-    const { width, height } = this.scale;
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.4);
-    const panel = this.add.rectangle(width / 2, height / 2, width * 0.7, height * 0.4, 0xffffff, 1);
-    panel.setStrokeStyle(4, 0xffe0ea);
-
-    const title = this.add.text(width / 2, height / 2 - 60, "", {
-      fontSize: "24px",
-      fontStyle: "700",
-      color: "#3b3b3b",
-      align: "center"
-    });
-    title.setOrigin(0.5);
-
-    const message = this.add.text(width / 2, height / 2 - 10, "", {
-      fontSize: "18px",
-      color: "#f46b85",
-      align: "center",
-      wordWrap: { width: width * 0.6 }
-    });
-    message.setOrigin(0.5);
-
-    const restartButton = this.add.rectangle(width / 2, height / 2 + 70, 180, 48, 0xff8aa1, 1);
-    restartButton.setStrokeStyle(2, 0xffd1dc);
-    restartButton.setInteractive({ useHandCursor: true });
-
-    const restartLabel = this.add.text(width / 2, height / 2 + 70, "再来一局", {
-      fontSize: "18px",
-      fontStyle: "700",
-      color: "#ffffff"
-    });
-    restartLabel.setOrigin(0.5);
-
-    restartButton.on("pointerdown", () => {
-      this.startGame();
-    });
-
-    const container = this.add.container(0, 0, [
-      overlay,
-      panel,
-      title,
-      message,
-      restartButton,
-      restartLabel
-    ]);
-    container.setDepth(10);
-    container.setVisible(false);
-
-    this.resultLayer = {
-      container,
-      title,
-      message
-    };
-  }
-
-  updateHud() {
-    this.hud.level.setText(`关卡 ${state.currentIndex + 1}/${state.totalQuestions}`);
-    this.hud.gems.setText(`💎 ${state.score}`);
-    this.hud.hearts.setText(`❤️ ${state.hearts}`);
-    this.hud.stars.setText(`⭐ ${getStars()}`);
-  }
-
-  startGame() {
-    state.currentIndex = 0;
-    state.score = 0;
-    state.hearts = 3;
-    state.questionSet = buildQuestionSet();
-    state.isTransitioning = false;
-
-    this.resultLayer.container.setVisible(false);
-    this.updateHud();
-    this.startLevel();
-  }
-
-  startLevel() {
-    state.currentQuestion = state.questionSet[state.currentIndex];
-    if (!state.currentQuestion) return;
-
-    const choices = shuffle(state.currentQuestion.choices);
-    this.pellets.forEach((pellet, index) => {
-      const label = this.pelletLabels[index];
-      pellet.setData("choice", choices[index]);
-      pellet.setVisible(true);
-      label.setText(choices[index]);
-      label.setVisible(true);
-    });
-
-    this.resetPlayer();
-    this.updateHud();
-    speakPrompt(state.currentQuestion.prompt);
-  }
-
-  resetPlayer() {
-    const { width, height } = this.scale;
-    this.pacman.setPosition(width / 2, height * 0.82);
-    this.pacman.setVelocity(0, 0);
-  }
-
-  handlePelletHit(pacman, pellet) {
-    if (state.isTransitioning) return;
-    state.isTransitioning = true;
-
-    pellet.setVisible(false);
-    const pelletIndex = this.pellets.indexOf(pellet);
-    if (pelletIndex >= 0) {
-      this.pelletLabels[pelletIndex].setVisible(false);
-    }
-
-    const choice = pellet.getData("choice");
-    const isCorrect = choice === state.currentQuestion.answer;
-
-    if (isCorrect) {
-      state.score += 1;
-      const stars = getStars() + 1;
-      setStars(stars);
-      updateWrongQueue(state.currentQuestion.prompt, true);
-      this.cameras.main.flash(200, 180, 255, 180);
-      this.tweens.add({
-        targets: pacman,
-        scale: 1.2,
-        duration: 120,
-        yoyo: true
-      });
-
-      this.time.delayedCall(300, () => {
-        if (state.currentIndex >= state.totalQuestions - 1) {
-          this.showResult();
-          return;
-        }
-        state.currentIndex += 1;
-        state.isTransitioning = false;
-        this.startLevel();
-      });
-    } else {
-      state.hearts = Math.max(0, state.hearts - 1);
-      updateWrongQueue(state.currentQuestion.prompt, false);
-      this.cameras.main.shake(180, 0.01);
-      this.cameras.main.flash(180, 255, 120, 120);
-
-      this.time.delayedCall(320, () => {
-        state.isTransitioning = false;
-        this.startLevel();
-      });
-    }
-  }
-
-  showResult() {
-    this.updateHud();
-    const win = state.score >= 7;
-    this.resultLayer.title.setText(win ? "出口开启通关" : "差一点点，再来一次");
-    this.resultLayer.message.setText(
-      win ? "你收集到足够宝石，成功打开迷宫出口！" : "还差一些宝石，重新挑战吧！"
-    );
-    this.resultLayer.container.setVisible(true);
-  }
-}
-
-const config = {
-  type: Phaser.AUTO,
-  parent: "gameContainer",
-  width: 960,
-  height: 540,
-  backgroundColor: "#fff8fd",
-  physics: {
-    default: "arcade",
-    arcade: {
-      debug: false
-    }
-  },
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
-  },
-  scene: [MazeScene]
+const startGame = () => {
+  state.currentIndex = 0;
+  state.score = 0;
+  state.hearts = 3;
+  state.questionSet = buildQuestionSet();
+  state.isActive = true;
+  state.isResolving = false;
+  elements.gameCard.classList.remove("hidden");
+  elements.resultCard.classList.add("hidden");
+  setSpeakingStatus(false);
+  renderQuestion();
+  startMovement();
 };
 
 const renderStickers = () => {
@@ -581,6 +425,19 @@ const toggleSticker = (show) => {
   }
 };
 
+const init = () => {
+  updateStats();
+  startGame();
+};
+
+elements.playSound.addEventListener("click", () => {
+  if (state.currentQuestion) {
+    speakPrompt(state.currentQuestion.prompt);
+  }
+});
+
+elements.restartGame.addEventListener("click", startGame);
+
 elements.openSticker.addEventListener("click", () => toggleSticker(true));
 
 elements.closeSticker.addEventListener("click", () => toggleSticker(false));
@@ -591,4 +448,8 @@ elements.stickerPage.addEventListener("click", (event) => {
   }
 });
 
-new Phaser.Game(config);
+window.addEventListener("keydown", handleKeyDown);
+window.addEventListener("keyup", handleKeyUp);
+window.addEventListener("resize", resetPacman);
+
+init();

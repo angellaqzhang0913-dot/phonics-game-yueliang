@@ -16,9 +16,55 @@
       <button class="ghost-button" id="openSticker">贴纸页</button>
     </header>
 
-    <div class="game-shell">
-      <div id="gameContainer" class="game-container" aria-label="Phaser game"></div>
+    <section class="stats">
+      <div class="stat">
+        <span>🎯 关卡</span>
+        <strong id="levelProgress">1 / 10</strong>
+      </div>
+      <div class="stat">
+        <span>💎 宝石</span>
+        <strong id="gemCount">0</strong>
+      </div>
+      <div class="stat">
+        <span>❤️ 心心</span>
+        <strong id="heartCount">3</strong>
+      </div>
+      <div class="stat">
+        <span>⭐ 星星</span>
+        <strong id="starCount">0</strong>
+      </div>
+    </section>
+
+    <div class="review-notice" id="reviewNotice" role="status" aria-live="polite">
+      已加入复习箱✅
     </div>
+
+    <section class="card" id="gameCard">
+      <div class="card__top">
+        <span class="badge" id="questionProgress">第 1 / 10 关</span>
+        <button class="primary-button" id="playSound">🔊 再听一次</button>
+      </div>
+
+      <div class="maze" id="maze">
+        <div class="maze__exit">出口</div>
+        <div class="maze__junction"></div>
+        <div class="pellet" data-choice="left" id="pelletLeft"></div>
+        <div class="pellet" data-choice="down" id="pelletDown"></div>
+        <div class="pellet" data-choice="right" id="pelletRight"></div>
+        <div class="pacman" id="pacman" aria-label="pacman"></div>
+      </div>
+
+      <div class="maze__hint">方向键 / WASD 移动，吃到正确拼写就能过关。</div>
+    </section>
+
+    <section class="card hidden" id="resultCard">
+      <h2 id="resultTitle">闯关完成 🎉</h2>
+      <div class="result">
+        <p>获得宝石：<strong id="scoreResult">0</strong> / 10</p>
+      </div>
+      <p class="result__message" id="resultMessage"></p>
+      <button class="primary-button" id="restartGame">再来一局</button>
+    </section>
   </div>
 
   <div class="sticker" id="stickerPage" aria-hidden="true">
