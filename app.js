@@ -132,8 +132,9 @@ const shuffle = (array) => {
 
 const setSpeakingStatus = (isSpeaking) => {
   state.isSpeaking = isSpeaking;
-  elements.playSound.disabled = isSpeaking;
-  elements.playSound.textContent = isSpeaking ? "正在朗读…" : "🔊 再听一次";
+  if (state.scene) {
+    state.scene.updateListenButton(isSpeaking);
+  }
 };
 
 const buildQuestionSet = () => {
@@ -201,16 +202,19 @@ const updateStats = () => {
   elements.questionProgress.textContent = `第 ${state.currentIndex + 1} / ${state.totalQuestions} 关`;
 };
 
-const showReviewNotice = () => {
-  if (!elements.reviewNotice) return;
-  elements.reviewNotice.classList.add("show");
-  if (state.reviewNoticeTimeout) {
-    clearTimeout(state.reviewNoticeTimeout);
+class MazeScene extends Phaser.Scene {
+  constructor() {
+    super("MazeScene");
+    this.pacman = null;
+    this.pellets = [];
+    this.pelletLabels = [];
+    this.hud = {};
+    this.listenButton = null;
+    this.listenLabel = null;
+    this.resultLayer = null;
+    this.cursors = null;
+    this.wasd = null;
   }
-  state.reviewNoticeTimeout = setTimeout(() => {
-    elements.reviewNotice.classList.remove("show");
-  }, 1400);
-};
 
 const setPacmanPosition = (x, y) => {
   const mazeRect = elements.maze.getBoundingClientRect();
@@ -241,9 +245,10 @@ const positionPellets = (choices) => {
   elements.pelletRight.className = "pellet pellet--right";
 };
 
-const renderQuestion = () => {
-  state.currentQuestion = state.questionSet[state.currentIndex];
-  if (!state.currentQuestion) return;
+  update() {
+    if (!this.pacman || state.isTransitioning || this.resultLayer.visible) {
+      return;
+    }
 
   const options = shuffle(state.currentQuestion.choices);
   positionPellets(options);
@@ -293,7 +298,6 @@ const showResults = () => {
     elements.resultTitle.textContent = "未达到 7 个宝石";
     elements.resultMessage.textContent = "未达到 7 个宝石，再来一次吧！";
   }
-};
 
 const movePacman = () => {
   if (!state.isActive) return;

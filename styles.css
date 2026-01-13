@@ -35,6 +35,29 @@ body {
   gap: 20px;
 }
 
+.game-shell {
+  background: var(--card);
+  border-radius: 28px;
+  padding: 16px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  border: 2px solid #ffe7ef;
+}
+
+.game-container {
+  width: 100%;
+  min-height: 520px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff8fd;
+  border: 2px solid #ffe0ea;
+}
+
+.game-container canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .app__header {
   display: flex;
   justify-content: space-between;
@@ -507,5 +530,13 @@ body {
   .pellet {
     width: 96px;
     font-size: 14px;
+  }
+
+  .game-shell {
+    padding: 12px;
+  }
+
+  .game-container {
+    min-height: 420px;
   }
 }
