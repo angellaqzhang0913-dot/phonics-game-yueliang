@@ -3,82 +3,106 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>吃豆人迷宫闯关 - 小小拼读家</title>
+  <title>Phonics Battle - 自然拼读打怪兽</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="app">
     <header class="app__header">
       <div>
-        <h1>小小拼读家</h1>
-        <p>吃豆人迷宫闯关：听音找正确拼写</p>
+        <h1>Phonics Battle</h1>
+        <p>回合制自然拼读打怪兽：听完整单词，找正确拼写！</p>
       </div>
-      <button class="ghost-button" id="openSticker">贴纸页</button>
+      <button class="ghost-button" id="listenAgain" type="button">🔊 再听一次</button>
     </header>
 
-    <section class="stats">
-      <div class="stat">
-        <span>🎯 关卡</span>
-        <strong id="levelProgress">1 / 10</strong>
+    <section class="info-bar">
+      <div class="info-card">
+        <span>Round</span>
+        <strong id="roundText">1 / 5</strong>
       </div>
-      <div class="stat">
-        <span>💎 宝石</span>
-        <strong id="gemCount">0</strong>
+      <div class="info-card">
+        <span>怪兽 HP</span>
+        <div class="hp-bar">
+          <div class="hp-bar__fill" id="monsterHpFill"></div>
+        </div>
       </div>
-      <div class="stat">
-        <span>❤️ 心心</span>
-        <strong id="heartCount">3</strong>
+      <div class="info-card">
+        <span>玩家 HP</span>
+        <strong id="playerHearts">❤️❤️❤️</strong>
       </div>
-      <div class="stat">
-        <span>⭐ 星星</span>
-        <strong id="starCount">0</strong>
+      <div class="info-card">
+        <span>✅ 正确 / ❌ 错误</span>
+        <strong id="scoreText">0 / 0</strong>
       </div>
     </section>
 
-    <div class="review-notice" id="reviewNotice" role="status" aria-live="polite">
-      已加入复习箱✅
-    </div>
-
-    <section class="card" id="gameCard">
-      <div class="card__top">
-        <span class="badge" id="questionProgress">第 1 / 10 关</span>
-        <button class="primary-button" id="playSound">🔊 再听一次</button>
+    <section class="arena">
+      <div class="arena__stage">
+        <div class="character girl" id="girl">
+          <div class="character__emoji">👧</div>
+          <div class="character__name">Luna</div>
+          <div class="effect effect--girl" id="girlEffect">✨</div>
+        </div>
+        <div class="battle-message" id="battleMessage">准备好了吗？</div>
+        <div class="character monster" id="monster">
+          <div class="character__emoji">👾</div>
+          <div class="character__name">Phonics Beast</div>
+          <div class="effect effect--monster" id="monsterEffect">⚡</div>
+        </div>
       </div>
-
-      <div class="maze" id="maze">
-        <div class="maze__exit">出口</div>
-        <div class="maze__junction"></div>
-        <div class="pellet" data-choice="left" id="pelletLeft"></div>
-        <div class="pellet" data-choice="down" id="pelletDown"></div>
-        <div class="pellet" data-choice="right" id="pelletRight"></div>
-        <div class="pacman" id="pacman" aria-label="pacman"></div>
-      </div>
-
-      <div class="maze__hint">方向键 / WASD 移动，吃到正确拼写就能过关。</div>
     </section>
 
-    <section class="card hidden" id="resultCard">
-      <h2 id="resultTitle">闯关完成 🎉</h2>
-      <div class="result">
-        <p>获得宝石：<strong id="scoreResult">0</strong> / 10</p>
+    <section class="options" id="options">
+      <button class="option-card" type="button" data-index="0"></button>
+      <button class="option-card" type="button" data-index="1"></button>
+      <button class="option-card" type="button" data-index="2"></button>
+    </section>
+
+    <section class="debug hidden" aria-live="polite">
+      <h2>Debug 面板</h2>
+      <div class="debug__grid">
+        <div><span>状态</span><strong id="debugState">BOOT</strong></div>
+        <div><span>题目</span><strong id="debugWord">-</strong></div>
+        <div><span>答案</span><strong id="debugAnswer">-</strong></div>
+        <div><span>Pattern</span><strong id="debugPattern">-</strong></div>
       </div>
-      <p class="result__message" id="resultMessage"></p>
-      <button class="primary-button" id="restartGame">再来一局</button>
     </section>
   </div>
 
-  <div class="sticker" id="stickerPage" aria-hidden="true">
-    <div class="sticker__panel">
-      <div class="sticker__header">
-        <h2>贴纸页</h2>
-        <button class="ghost-button" id="closeSticker">关闭</button>
-      </div>
-      <p class="sticker__tip">每攒够 3 颗星星就能解锁一张贴纸哦！</p>
-      <div class="sticker__grid" id="stickerGrid"></div>
+  <div class="overlay" id="introOverlay" aria-hidden="false">
+    <div class="modal">
+      <h2>欢迎来到 Phonics Battle!</h2>
+      <p>听到单词后，从 3 个拼写里选出正确答案。打倒怪兽就能胜利！</p>
+      <button class="primary-button" id="startGame" type="button">开始挑战</button>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
-  <script src="app.js"></script>
+  <div class="overlay" id="resultOverlay" aria-hidden="true">
+    <div class="modal">
+      <h2 id="resultTitle">闯关结果</h2>
+      <p>✅ 正确：<strong id="resultCorrect">0</strong></p>
+      <p>❌ 错误：<strong id="resultWrong">0</strong></p>
+      <p>⏱️ 用时：<strong id="resultTime">0s</strong></p>
+      <button class="primary-button" id="restartGame" type="button">再来一次</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="rewardOverlay" aria-hidden="true">
+    <div class="modal reward">
+      <div class="confetti" id="confetti"></div>
+      <h2>🎉 You win!</h2>
+      <p>怪兽被击败，干得漂亮！</p>
+      <p>✅ 正确：<strong id="rewardCorrect">0</strong></p>
+      <p>❌ 错误：<strong id="rewardWrong">0</strong></p>
+      <p>⏱️ 用时：<strong id="rewardTime">0s</strong></p>
+      <div class="modal__actions">
+        <button class="primary-button" id="nextMonster" type="button">下一只怪兽</button>
+        <button class="ghost-button" id="playAgain" type="button">再玩一次</button>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="main.js"></script>
 </body>
 </html>
