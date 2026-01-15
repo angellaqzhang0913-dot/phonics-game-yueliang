@@ -457,3 +457,4 @@ window.addEventListener("keyup", (event) => scene.handleKeyUp(event));
 window.addEventListener("resize", () => scene.resetPacman());
 
 scene.init();
+scene.startGame();   // ✅ 关键：自动开局
