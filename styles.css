@@ -28,6 +28,10 @@ body {
   padding: 24px 16px 40px;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .app {
   width: min(980px, 100%);
   display: flex;
