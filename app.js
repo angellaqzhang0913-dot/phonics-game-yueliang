@@ -205,13 +205,12 @@ const updateStats = () => {
 class MazeScene extends Phaser.Scene {
   constructor() {
     super("MazeScene");
-    this.pacman = null;
+    this.pacman = elements.pacman;
     this.pellets = [];
     this.pelletLabels = [];
     this.hud = {};
     this.listenButton = null;
     this.listenLabel = null;
-    this.resultLayer = null;
     this.cursors = null;
     this.wasd = null;
   }
@@ -246,7 +245,7 @@ class MazeScene extends Phaser.Scene {
   }
 
   renderQuestion() {
-    if (!this.pacman || state.isTransitioning || this.resultLayer.visible) {
+    if (!state.currentQuestion) {
       return;
     }
 
@@ -270,6 +269,7 @@ class MazeScene extends Phaser.Scene {
     }
 
     state.currentIndex += 1;
+    this.setCurrentQuestion();
     this.renderQuestion();
     state.isResolving = false;
   }
@@ -397,11 +397,22 @@ class MazeScene extends Phaser.Scene {
     state.questionSet = buildQuestionSet();
     state.isActive = true;
     state.isResolving = false;
+    this.setCurrentQuestion();
     elements.gameCard.classList.remove("hidden");
     elements.resultCard.classList.add("hidden");
     setSpeakingStatus(false);
     this.renderQuestion();
     this.startMovement();
+  }
+
+  setCurrentQuestion() {
+    state.currentQuestion = state.questionSet[state.currentIndex] ?? null;
+  }
+
+  updateListenButton(isSpeaking) {
+    if (!elements.playSound) return;
+    elements.playSound.disabled = isSpeaking;
+    elements.playSound.textContent = isSpeaking ? "🔊 播放中..." : "🔊 再听一次";
   }
 
   renderStickers() {
@@ -427,6 +438,7 @@ class MazeScene extends Phaser.Scene {
   }
 
   init() {
+    state.scene = this;
     updateStats();
     this.startGame();
   }
